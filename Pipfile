@@ -5,15 +5,17 @@ verify_ssl = true
 
 [dev-packages]
 isort = "*"
+black = "*"
+pylint = "*"
+pytype = "*"
 
 [packages]
-bidict = "*"
 attrs = "*"
-pytype = "*"
-ipdb = "*"
 absl-py = "*"
 sh = "*"
-pylint = "*"
 
 [requires]
 python_version = "3.7"
+
+[pipenv]
+allow_prereleases = true
