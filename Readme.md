@@ -23,6 +23,25 @@ which you can inspect with the Creation Kit. If the mod comes packaged
 as a `.bsa`, you may need to install the mod or use a pgoram like BAE
 to get at the `.esp` files.
 
-## alchemy_cover.py
+## Tools
+
+### alchemy_cover.py
 
 Figure out what potions to brew to discover all ingredient effects.
+
+## Installation
+
+Dependency management and setup are managed by `pipenv`. Linting is
+done with `pylint` and `pytype`. The project is fully
+type-hinted. Formatting is handled with `black` and `isort`.
+
+To get started:
+
+```bash
+git clone https://github.com/vebyast/skyrim_alchemy.git
+cd skyrim_alchemy
+pipenv install --dev
+pipenv run python alchemy/alchemy_cover.py \
+    --infile=data/skyrim_vanilla.csv \
+	--outfile=output/skyrim_vanilla_1.csv
+```
