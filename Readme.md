@@ -6,7 +6,9 @@ I've provided the two datasets that I've worked with so far:
 
 - `data/skyrim_vanilla.csv` is the vanilla set of potion ingredients
   from TES5 + DCLs [as listed on Skyrim
-  Wiki](https://elderscrolls.fandom.com/wiki/Ingredients_(Skyrim)).
+  Wiki](https://elderscrolls.fandom.com/wiki/Ingredients_(Skyrim)). There's
+  a... small chance that there are some errors in it. I haven't dug in
+  particularly deeply.
 - `data/skyrim_lexy_legacy_of_the_dragonborn.csv` is the set of
   ingredients in Lexy's Legacy of the Dragonborn modlist that are
   involved in TES5, DLCs, and the Complete Alchemy and Cooking
