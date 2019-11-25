@@ -171,7 +171,8 @@ def write_potions(fname, resulting_potions):
     for pot in resulting_potions:
         ing_names = sorted(pot.ingredients)
         eff_names = sorted(pot.effects)
-        lines.append(ing_names + eff_names)
+        line = ing_names + eff_names + [None] * (6 - len(eff_names))
+        lines.append(line)
     lines.sort()
     with open(fname, "w") as f:
         writer = csv.writer(f)
