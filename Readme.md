@@ -33,7 +33,8 @@ Figure out what potions to brew to discover all ingredient effects.
 
 Dependency management and setup are managed by `pipenv`. Linting is
 done with `pylint` and `pytype`. The project is fully
-type-hinted. Formatting is handled with `black` and `isort`.
+type-hinted. Formatting is handled with `black` and `isort`. PRs must
+lint.
 
 To get started:
 
