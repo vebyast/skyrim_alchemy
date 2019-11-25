@@ -29,7 +29,7 @@ to get at the `.esp` files.
 
 Figure out what potions to brew to discover all ingredient effects.
 
-## Installation
+## Installation and Development
 
 Dependency management and setup are managed by `pipenv`. Linting is
 done with `pylint` and `pytype`. The project is fully
