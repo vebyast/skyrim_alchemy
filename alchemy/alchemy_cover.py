@@ -21,7 +21,7 @@ To run the program once, invoke:
 
 ```bash
 pipenv install
-pipenv run python alchemy_cover.py \
+pipenv run python alchemy/alchemy_cover.py \
     --infile=data/skyrim_vanilla.csv \
 	--outfile=output/skyrim_vanilla_1.csv
 ```
@@ -31,7 +31,7 @@ Parallel](https://www.gnu.org/software/parallel/) and invoke:
 
 ```bash
 pipenv install
-pipenv run python alchemy_cover_parallel.py \
+pipenv run python alchemy/alchemy_cover_parallel.py \
 	--count=30 \
 	--infile=data/skyrim_vanilla.csv \
 	--outfile_base='output/skyrim_vanilla_{}.csv'
@@ -46,18 +46,15 @@ import collections
 import csv
 import itertools
 import random
-from typing import Dict
 from typing import FrozenSet
 from typing import Generator
 from typing import Iterable
-from typing import Mapping
+from typing import List
 from typing import NewType
 from typing import Set
-from typing import Text
 from typing import Tuple
 
 import attr
-import bidict
 from absl import app
 from absl import flags
 
@@ -67,63 +64,26 @@ flags.DEFINE_string("infile", None, "CSV to read ingredient data from")
 
 flags.DEFINE_string("outfile", None, "CSV to write potions to")
 
-# Manually intern strings, because why not. Use strong int types to
-# help catch errors.
-IngredientId = NewType("IngredientId", int)
-EffectId = NewType("EffectId", int)
+# Use strong types to help catch errors.
+IngredientId = NewType("IngredientId", str)
+EffectId = NewType("EffectId", str)
 IngredientEffect = Tuple[IngredientId, EffectId]
-
-
-_EFFECT_INDEX = bidict.bidict()
-_INGREDIENT_INDEX = bidict.bidict()
-
-
-def _repr_ingredient_id(value: IngredientId) -> Text:
-    return repr(_INGREDIENT_INDEX[value])
-
-
-def _repr_ingredients(value: Iterable[IngredientId]) -> Text:
-    return "[" + ", ".join(_repr_ingredient_id(i) for i in value) + "]"
-
-
-def _repr_effect_id(value: EffectId) -> Text:
-    return repr(_EFFECT_INDEX[value])
-
-
-def _repr_effects(value: Iterable[EffectId]) -> Text:
-    return "[" + ", ".join(_repr_effect_id(e) for e in value) + "]"
-
-
-def _repr_ing_effect(value: IngredientEffect) -> Text:
-    return "({}, {})".format(_repr_ingredient_id(value[0]), _repr_effect_id(value[1]),)
-
-
-def _repr_ing_effects(value: Iterable[IngredientEffect]) -> Text:
-    return "[" + ", ".join(_repr_ing_effect(e) for e in value) + "]"
 
 
 @attr.s(frozen=True)
 class Ingredient(object):
     """Container object for Ingredients."""
 
-    name: IngredientId = attr.ib(repr=_repr_ingredient_id)
-    effects: FrozenSet[EffectId] = attr.ib(repr=_repr_effects, converter=frozenset)
-
-    @property
-    def display_name(self) -> Text:
-        return _INGREDIENT_INDEX.inverse[self.name]
+    name: IngredientId = attr.ib()
+    effects: FrozenSet[EffectId] = attr.ib(converter=frozenset)
 
 
 @attr.s(frozen=True)
 class Potion(object):
     """Container object for Potions."""
 
-    ingredients: FrozenSet[IngredientId] = attr.ib(
-        repr=_repr_ingredients, converter=frozenset
-    )
-    ingredient_effects: FrozenSet[IngredientEffect] = attr.ib(
-        repr=_repr_ing_effects, converter=frozenset
-    )
+    ingredients: FrozenSet[IngredientId] = attr.ib(converter=frozenset)
+    ingredient_effects: FrozenSet[IngredientEffect] = attr.ib(converter=frozenset)
 
     @property
     def effects(self) -> FrozenSet[EffectId]:
@@ -153,8 +113,6 @@ def greedy_set_cover(universe: Iterable[IngredientEffect], pots: Iterable[Potion
         if not next_covered:
             raise Exception("No set cover possible")
 
-        # print(len(left), len(next_covered), next_set)
-
         unchosen.remove(next_set)
         chosen.add(next_set)
         left -= next_set.ingredient_effects
@@ -162,24 +120,25 @@ def greedy_set_cover(universe: Iterable[IngredientEffect], pots: Iterable[Potion
     return chosen
 
 
-def read_problem(fname) -> Dict[Text, FrozenSet[Text]]:
-    ingredients = {}
+def read_problem(fname) -> List[Ingredient]:
+    """Reads a CSV of ingredients and effects."""
+    ingredients = []
     with open(fname, "r") as f:
         for row in csv.DictReader(f, delimiter=","):
-            ingredients[row["Ingredient"]] = frozenset(
-                [row["Effect1"], row["Effect2"], row["Effect3"], row["Effect4"]]
+            ingredients.append(
+                Ingredient(
+                    name=IngredientId(row["Ingredient"]),
+                    effects=frozenset(
+                        [
+                            EffectId(row["Effect1"]),
+                            EffectId(row["Effect2"]),
+                            EffectId(row["Effect3"]),
+                            EffectId(row["Effect4"]),
+                        ]
+                    ),
+                )
             )
     return ingredients
-
-
-def numberize(
-    ingredients: Mapping[Text, FrozenSet[Text]],
-) -> Generator[Ingredient, None, None]:
-    for ingredient, effects in ingredients.items():
-        yield Ingredient(
-            name=_INGREDIENT_INDEX.inverse[ingredient],
-            effects=frozenset(_EFFECT_INDEX.inverse[eff] for eff in effects),
-        )
 
 
 def generate_potions(
@@ -208,6 +167,12 @@ def generate_potions(
 
 def write_potions(fname, resulting_potions):
     """Formats the given potions as csv and writes them out."""
+    lines = []
+    for pot in resulting_potions:
+        ing_names = sorted(pot.ingredients)
+        eff_names = sorted(pot.effects)
+        lines.append(ing_names + eff_names)
+    lines.sort()
     with open(fname, "w") as f:
         writer = csv.writer(f)
         writer.writerow(
@@ -223,34 +188,28 @@ def write_potions(fname, resulting_potions):
                 "Effect6",
             ]
         )
-        for pot in resulting_potions:
-            ing_names = [_INGREDIENT_INDEX[ing] for ing in pot.ingredients]
-            eff_names = [_EFFECT_INDEX[eff] for eff in pot.effects]
-            writer.writerow(ing_names + eff_names)
+        for line in lines:
+            writer.writerow(line)
 
 
 def main(args):
     """Entry point."""
     del args  # unused
 
-    ingredients = read_problem(FLAGS.infile)
+    ingredients: List[Ingredient] = read_problem(FLAGS.infile)
     print("Read {} ingredients".format(len(ingredients)))
 
-    # Populate mappings
-    all_effects = frozenset(itertools.chain.from_iterable(ingredients.values()))
-    _EFFECT_INDEX.update(enumerate(all_effects))
-    _INGREDIENT_INDEX.update(enumerate(ingredients.keys()))
-
-    ingredients = list(numberize(ingredients))
-    print("Ingredients numberized")
-
-    all_potions = set(generate_potions(ingredients))
+    all_potions: Set[Potion] = set(generate_potions(ingredients))
     print("Constructed {} potions".format(len(all_potions)))
 
     all_ingredient_effects = frozenset(
         itertools.chain.from_iterable(p.ingredient_effects for p in all_potions)
     )
-    print("Need to find {} ingredient-effect pairs".format(len(all_ingredient_effects)))
+    print(
+        "Finding a cover for {} ingredient-effect pairs".format(
+            len(all_ingredient_effects)
+        )
+    )
 
     result = greedy_set_cover(all_ingredient_effects, all_potions)
     print("Found a solution using {} potions, writing to csv...".format(len(result)))

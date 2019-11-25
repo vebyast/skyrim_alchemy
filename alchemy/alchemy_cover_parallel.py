@@ -1,4 +1,6 @@
-"""Runs alchemy_cover.py in parallel"""
+"""Runs alchemy_cover.py in parallel. See alchemy_cover.py for instructions."""
+
+import sys
 
 import sh
 from absl import app
@@ -25,12 +27,12 @@ def main(args):
         "pipenv",
         "run",
         "python",
-        "alchemy_cover.py",
+        "alchemy/alchemy_cover.py",
         "--infile=" + FLAGS.infile,
         "--outfile=" + FLAGS.outfile_base,
         _iter=True,
     ):
-        print(line)
+        sys.stdout.write(line)
 
 
 if __name__ == "__main__":
