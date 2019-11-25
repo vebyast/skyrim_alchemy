@@ -22,7 +22,7 @@ I've provided the two datasets that I've worked with so far:
 To use this on your own modded game, you can extract the alchemy data
 from the mod files. The alchemy data is found in the `.esp` files,
 which you can inspect with the Creation Kit. If the mod comes packaged
-as a `.bsa`, you may need to install the mod or use a pgoram like BAE
+as a `.bsa`, you may need to install the mod or use a program like BAE
 to get at the `.esp` files.
 
 ## Tools
