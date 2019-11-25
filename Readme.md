@@ -1,5 +1,7 @@
 # Alchemy Solvers for Skyrim
 
+![](https://github.com/vebyast/skyrim_alchemy/workflows/CI/badge.svg)
+
 I've provided the two datasets that I've worked with so far:
 
 - `data/skyrim_vanilla.csv` is the vanilla set of potion ingredients
