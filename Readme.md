@@ -10,10 +10,12 @@ I've provided the two datasets that I've worked with so far:
   a... small chance that there are some errors in it. I haven't dug in
   particularly deeply.
 - `data/skyrim_lexy_legacy_of_the_dragonborn.csv` is the set of
-  ingredients in Lexy's Legacy of the Dragonborn modlist that are
-  involved in TES5, DLCs, and the Complete Alchemy and Cooking
-  Overhaul, minus the "distilled" ingredients you get from the level
-  90 perk in CACO and ingredients from some other mods. Thanks to
+  ingredients in [Lexy's Legacy of the
+  Dragonborn](https://wiki.nexusmods.com/index.php/User:Darkladylexy/Lexys_LOTD_SE)
+  modlist that are involved in TES5, DLCs, and the Complete Alchemy
+  and Cooking Overhaul, minus the "distilled" ingredients you get from
+  the level 90 perk in CACO and ingredients from some other
+  mods. Thanks to
   [/u/grammarcommander](https://www.reddit.com/user/grammarcommander)
   on reddit for dumping the data for me.
 
