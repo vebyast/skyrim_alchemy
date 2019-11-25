@@ -13,5 +13,6 @@ jobs:
       with:
         python-version: 3.7
     - uses: dschep/install-pipenv-action@v1
+    - run: pipenv install --dev
     - name: Lint
       run: make lint
