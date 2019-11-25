@@ -1,3 +1,5 @@
+"""Runs alchemy_cover.py in parallel"""
+
 import sh
 from absl import app
 from absl import flags
@@ -15,6 +17,7 @@ flags.DEFINE_integer("count", 10, "Number of runs to do")
 
 
 def main(args):
+    """Main."""
     del args  # unused
 
     for line in sh.parallel(

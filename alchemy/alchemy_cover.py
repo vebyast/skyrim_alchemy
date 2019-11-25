@@ -1,42 +1,85 @@
-from absl import app
-from absl import flags
-import attr
-import bidict
-import csv
+"""Figure out what potions to brew to discover all ingredient effects.
+
+This is the set cover problem:
+
+> Given a set of elements { 1 , 2 , . . . , n } (called the universe)
+> and a collection S of m sets whose union equals the universe, the
+> set cover problem is to identify the smallest sub-collection of S
+> whose union equals the universe.
+>
+> Set Cover on Wikipedia [1]
+
+The universe 𝑈 is the set of all `(ingredient, effect)` tuples. Each
+potion is a member 𝑠 ∈ 𝑆 that covers the set of `(ingredient, effect)`
+tuples that would be discovered by brewing that potion.
+
+`alchemy_cover.py` implements the trivial greedy algorithm [2], which
+turns out to be decent for this domain. Ties are broken randomly so we
+can rerun the program to generate new solutions.
+
+To run the program once, invoke:
+
+```bash
+pipenv install
+pipenv run python alchemy_cover.py \
+    --infile=data/skyrim_vanilla.csv \
+	--outfile=output/skyrim_vanilla_1.csv
+```
+
+To run it with parallelism, install [GNU
+Parallel](https://www.gnu.org/software/parallel/) and invoke:
+
+```bash
+pipenv install
+pipenv run python alchemy_cover_parallel.py \
+	--count=30 \
+	--infile=data/skyrim_vanilla.csv \
+	--outfile_base='output/skyrim_vanilla_{}.csv'
+```
+
+1: https://en.wikipedia.org/wiki/Set_cover_problem
+2: https://en.wikipedia.org/wiki/Set_cover_problem#Greedy_algorithm
+
+"""
+
 import collections
+import csv
 import itertools
 import random
-from typing import (
-    AbstractSet,
-    Set,
-    List,
-    FrozenSet,
-    Dict,
-    Text,
-    Mapping,
-    Iterable,
-    Generator,
-    NewType,
-    Tuple,
-)
+from typing import Dict
+from typing import FrozenSet
+from typing import Generator
+from typing import Iterable
+from typing import Mapping
+from typing import NewType
+from typing import Set
+from typing import Text
+from typing import Tuple
+
+import attr
+import bidict
+from absl import app
+from absl import flags
 
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string("infile", None, "CSV to read ingredient data from")
+
 flags.DEFINE_string("outfile", None, "CSV to write potions to")
 
-
+# Manually intern strings, because why not. Use strong int types to
+# help catch errors.
 IngredientId = NewType("IngredientId", int)
 EffectId = NewType("EffectId", int)
 IngredientEffect = Tuple[IngredientId, EffectId]
 
 
-EFFECT_INDEX = None
-INGREDIENT_INDEX = None
+_EFFECT_INDEX = bidict.bidict()
+_INGREDIENT_INDEX = bidict.bidict()
 
 
 def _repr_ingredient_id(value: IngredientId) -> Text:
-    return repr(INGREDIENT_INDEX[value])
+    return repr(_INGREDIENT_INDEX[value])
 
 
 def _repr_ingredients(value: Iterable[IngredientId]) -> Text:
@@ -44,7 +87,7 @@ def _repr_ingredients(value: Iterable[IngredientId]) -> Text:
 
 
 def _repr_effect_id(value: EffectId) -> Text:
-    return repr(EFFECT_INDEX[value])
+    return repr(_EFFECT_INDEX[value])
 
 
 def _repr_effects(value: Iterable[EffectId]) -> Text:
@@ -59,23 +102,22 @@ def _repr_ing_effects(value: Iterable[IngredientEffect]) -> Text:
     return "[" + ", ".join(_repr_ing_effect(e) for e in value) + "]"
 
 
-def take(n, iterable):
-    "Return first n items of the iterable as a list"
-    return itertools.islice(iterable, n)
-
-
 @attr.s(frozen=True)
 class Ingredient(object):
+    """Container object for Ingredients."""
+
     name: IngredientId = attr.ib(repr=_repr_ingredient_id)
     effects: FrozenSet[EffectId] = attr.ib(repr=_repr_effects, converter=frozenset)
 
     @property
     def display_name(self) -> Text:
-        return INGREDIENT_INDEX.inverse[self.name]
+        return _INGREDIENT_INDEX.inverse[self.name]
 
 
 @attr.s(frozen=True)
 class Potion(object):
+    """Container object for Potions."""
+
     ingredients: FrozenSet[IngredientId] = attr.ib(
         repr=_repr_ingredients, converter=frozenset
     )
@@ -88,10 +130,11 @@ class Potion(object):
         return frozenset(e[1] for e in self.ingredient_effects)
 
 
-def greedy_set_cover(universe: Iterable[IngredientEffect], potions: Iterable[Potion]):
+def greedy_set_cover(universe: Iterable[IngredientEffect], pots: Iterable[Potion]):
+    """Solves the set cover problem using the trivial greedy algorithm."""
     chosen: Set[Potion] = set()
     left: Set[IngredientEffect] = set(universe)
-    unchosen: Set[Potion] = set(potions)
+    unchosen: Set[Potion] = set(pots)
 
     covered = lambda s: left & s.ingredient_effects
 
@@ -132,15 +175,17 @@ def read_problem(fname) -> Dict[Text, FrozenSet[Text]]:
 def numberize(
     ingredients: Mapping[Text, FrozenSet[Text]],
 ) -> Generator[Ingredient, None, None]:
-    numbered = {}
     for ingredient, effects in ingredients.items():
         yield Ingredient(
-            name=INGREDIENT_INDEX.inverse[ingredient],
-            effects=frozenset(EFFECT_INDEX.inverse[eff] for eff in effects),
+            name=_INGREDIENT_INDEX.inverse[ingredient],
+            effects=frozenset(_EFFECT_INDEX.inverse[eff] for eff in effects),
         )
 
 
-def potions(ingredients: Iterable[Ingredient]) -> Generator[Potion, None, None]:
+def generate_potions(
+    ingredients: Iterable[Ingredient],
+) -> Generator[Potion, None, None]:
+    """Generate all of the potions that you can make with a set of Ingredients."""
     all_combos = itertools.chain(
         itertools.combinations(ingredients, 3), itertools.combinations(ingredients, 2),
     )
@@ -161,7 +206,8 @@ def potions(ingredients: Iterable[Ingredient]) -> Generator[Potion, None, None]:
             )
 
 
-def _write_potions(fname, resulting_potions):
+def write_potions(fname, resulting_potions):
+    """Formats the given potions as csv and writes them out."""
     with open(fname, "w") as f:
         writer = csv.writer(f)
         writer.writerow(
@@ -178,29 +224,27 @@ def _write_potions(fname, resulting_potions):
             ]
         )
         for pot in resulting_potions:
-            ing_names = [INGREDIENT_INDEX[ing] for ing in pot.ingredients]
-            eff_names = [EFFECT_INDEX[eff] for eff in pot.effects]
+            ing_names = [_INGREDIENT_INDEX[ing] for ing in pot.ingredients]
+            eff_names = [_EFFECT_INDEX[eff] for eff in pot.effects]
             writer.writerow(ing_names + eff_names)
 
 
 def main(args):
+    """Entry point."""
     del args  # unused
-
-    global EFFECT_INDEX
-    global INGREDIENT_INDEX
 
     ingredients = read_problem(FLAGS.infile)
     print("Read {} ingredients".format(len(ingredients)))
 
     # Populate mappings
     all_effects = frozenset(itertools.chain.from_iterable(ingredients.values()))
-    EFFECT_INDEX = bidict.frozenbidict(enumerate(all_effects))
-    INGREDIENT_INDEX = bidict.frozenbidict(enumerate(ingredients.keys()))
+    _EFFECT_INDEX.update(enumerate(all_effects))
+    _INGREDIENT_INDEX.update(enumerate(ingredients.keys()))
 
     ingredients = list(numberize(ingredients))
     print("Ingredients numberized")
 
-    all_potions = set(potions(ingredients))
+    all_potions = set(generate_potions(ingredients))
     print("Constructed {} potions".format(len(all_potions)))
 
     all_ingredient_effects = frozenset(
@@ -211,7 +255,7 @@ def main(args):
     result = greedy_set_cover(all_ingredient_effects, all_potions)
     print("Found a solution using {} potions, writing to csv...".format(len(result)))
 
-    _write_potions(FLAGS.outfile, result)
+    write_potions(FLAGS.outfile, result)
 
 
 if __name__ == "__main__":

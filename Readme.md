@@ -19,47 +19,6 @@ which you can inspect with the Creation Kit. If the mod comes packaged
 as a `.bsa`, you may need to install the mod or use a pgoram like BAE
 to get at the `.esp` files.
 
-## Contents
+## alchemy_cover.py
 
-### alchemy_cover.py
-
-Computes efficient sets of potions to brew to discover the effects of
-all ingredients.
-
-This is set cover:
-
-> Given a set of elements { 1 , 2 , . . . , n } (called the universe)
-> and a collection S of m sets whose union equals the universe, the
-> set cover problem is to identify the smallest sub-collection of S
-> whose union equals the universe.
->
-> [Set Cover on Wikipedia](https://en.wikipedia.org/wiki/Set_cover_problem)
-
-The universe 𝑈 is the set of all `(ingredient, effect)` tuples. Each
-potion is a member 𝑠 ∈ 𝑆 that covers the set of `(ingredient, effect)`
-tuples that would be discovered by brewing that potion.
-
-`alchemy_cover.py` implements the [trivial greedy
-algorithm](https://en.wikipedia.org/wiki/Set_cover_problem#Greedy_algorithm),
-which turns out to be decent for this domain. Ties are broken randomly
-so we can rerun the program to generate new solutions.
-
-To run the program once, invoke:
-
-```bash
-pipenv install
-pipenv run python alchemy_cover.py \
-    --infile=data/skyrim_vanilla.csv \
-	--outfile=output/skyrim_vanilla_1.csv
-```
-
-To run it with parallelism, install [GNU
-Parallel](https://www.gnu.org/software/parallel/) and invoke:
-
-```bash
-pipenv install
-pipenv run python alchemy_cover_parallel.py \
-	--count=30 \
-	--infile=data/skyrim_vanilla.csv \
-	--outfile_base='output/skyrim_vanilla_{}.csv'
-```
+Figure out what potions to brew to discover all ingredient effects.
