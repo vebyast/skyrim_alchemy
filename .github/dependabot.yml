@@ -1,0 +1,38 @@
+version: 2
+updates:
+- package-ecosystem: pip
+  directory: "/"
+  schedule:
+    interval: daily
+  open-pull-requests-limit: 10
+  ignore:
+  - dependency-name: black
+    versions:
+    - 20.8b1
+    - 21.4b0
+    - 21.4b1
+  - dependency-name: pylint
+    versions:
+    - 2.6.0
+    - 2.6.2
+    - 2.7.0
+    - 2.7.1
+    - 2.7.2
+    - 2.7.3
+    - 2.7.4
+    - 2.8.1
+  - dependency-name: pytype
+    versions:
+    - 2021.1.28
+    - 2021.2.19
+    - 2021.2.23
+    - 2021.2.9
+    - 2021.3.10
+    - 2021.3.22
+    - 2021.3.3
+    - 2021.4.1
+    - 2021.4.15
+    - 2021.4.9
+  - dependency-name: absl-py
+    versions:
+    - 0.11.0
